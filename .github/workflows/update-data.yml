@@ -1,0 +1,38 @@
+name: Update HSR Wish Data
+
+on:
+  schedule:
+    # 每天北京时间 10:00 和 22:00 运行（UTC 2:00 和 14:00）
+    - cron: '0 2,14 * * *'
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # 获取所有历史记录，用于提交
+        
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Run data scraper
+      run: python starrial.py --save
+      
+    - name: Commit and push changes
+      run: |
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@users.noreply.github.com"
+        git add data.json
+        git diff-index --quiet HEAD || git commit -m "Auto update data: $(date -u '+%Y-%m-%d %H:%M')"
+        git push
