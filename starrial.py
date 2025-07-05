@@ -1,10 +1,32 @@
+# starrial.py
 import requests
 from bs4 import BeautifulSoup
 import re
 from datetime import datetime, timedelta
 from flask import Flask, jsonify
+import json
+import os
+import subprocess
 
 app = Flask(__name__)
+
+# 设置数据保存路径
+DATA_FILE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data.json')
+
+def adjust_to_target_weekday(date, target_weekday):
+    """
+    将日期调整到最近的指定星期（0=周一, 6=周日）
+    返回调整后的日期
+    """
+    current_weekday = date.weekday()
+    # 计算最近的两个候选日期（上一个和下一个目标星期）
+    prev_candidate = date - timedelta(days=(current_weekday - target_weekday) % 7)
+    next_candidate = date + timedelta(days=(target_weekday - current_weekday) % 7)
+    
+    # 选择距离原日期更近的那个
+    if abs((date - prev_candidate).days) <= abs((next_candidate - date).days):
+        return prev_candidate
+    return next_candidate
 
 def scrape_hsr_wish_data():
     """
@@ -188,12 +210,27 @@ def scrape_version_info():
         # 计算下一个版本前瞻时间（更新前11天）
         livestream_date = next_version_date - timedelta(days=11)
         
+        # 调整日期到正确的星期
+        next_version_date_adjusted = adjust_to_target_weekday(next_version_date, 2)  # 2=周三
+        livestream_date_adjusted = adjust_to_target_weekday(livestream_date, 4)      # 4=周五
+        
+        # 确保前瞻日期在更新日期之前
+        if livestream_date_adjusted >= next_version_date_adjusted:
+            livestream_date_adjusted -= timedelta(days=7)
+            # 重新调整到星期五
+            livestream_date_adjusted = adjust_to_target_weekday(livestream_date_adjusted, 4)
+        
+        # 确保调整后前瞻日期仍在更新日期之前
+        if livestream_date_adjusted >= next_version_date_adjusted:
+            livestream_date_adjusted = next_version_date_adjusted - timedelta(days=7)
+            livestream_date_adjusted = adjust_to_target_weekday(livestream_date_adjusted, 4)
+        
         return {
             "current_version": version_number,
             "current_version_title": version_title,
             "current_version_update_date": update_date.strftime("%Y-%m-%d"),
-            "next_version_update_date": next_version_date.strftime("%Y-%m-%d"),
-            "next_version_livestream_date": livestream_date.strftime("%Y-%m-%d")
+            "next_version_update_date": next_version_date_adjusted.strftime("%Y-%m-%d"),
+            "next_version_livestream_date": livestream_date_adjusted.strftime("%Y-%m-%d")
         }
     
     except Exception as e:
@@ -271,36 +308,94 @@ def format_wish_data(wish_data):
     
     return formatted_data
 
-@app.route('/api/hsr_wish', methods=['GET'])
-def get_wish_data():
+def fetch_and_save_data():
     """
-    API端点：返回卡池数据和版本信息的JSON格式
+    获取数据并保存到文件
     """
     # 爬取卡池数据
     raw_data = scrape_hsr_wish_data()
     if not raw_data:
-        return jsonify({"error": "Failed to fetch wish data"}), 500
+        print("未获取到卡池数据")
+        return False
         
     formatted_data = format_wish_data(raw_data)
     
     if not formatted_data:
-        return jsonify({"error": "No valid wish data found"}), 404
+        print("格式化卡池数据失败")
+        return False
         
     # 爬取版本信息
     version_info = scrape_version_info()
     
     # 添加更新时间戳
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    response = {
+    data = {
         "last_updated": current_time,
         "wish_data": formatted_data
     }
     
     # 如果成功获取版本信息，添加到响应中
     if version_info:
+        data["version_info"] = version_info
+    
+    # 保存到文件
+    try:
+        with open(DATA_FILE_PATH, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        print(f"数据已保存到 {DATA_FILE_PATH}")
+        return True
+    except Exception as e:
+        print(f"保存数据失败: {str(e)}")
+        return False
+
+@app.route('/api/hsr_wish', methods=['GET'])
+def get_wish_data():
+    """
+    API端点：返回卡池数据和版本信息的JSON格式
+    """
+    # 尝试从文件加载数据
+    if os.path.exists(DATA_FILE_PATH):
+        try:
+            with open(DATA_FILE_PATH, 'r', encoding='utf-8') as f:
+                return jsonify(json.load(f))
+        except:
+            pass
+    
+    # 如果文件不存在或加载失败，则实时爬取
+    return jsonify(fetch_wish_data())
+
+def fetch_wish_data():
+    raw_data = scrape_hsr_wish_data()
+    if not raw_data:
+        return {"error": "Failed to fetch wish data"}
+        
+    formatted_data = format_wish_data(raw_data)
+    
+    if not formatted_data:
+        return {"error": "No valid wish data found"}
+        
+    version_info = scrape_version_info()
+    
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    response = {
+        "last_updated": current_time,
+        "wish_data": formatted_data
+    }
+    
+    if version_info:
         response["version_info"] = version_info
     
-    return jsonify(response)
+    return response
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    # 支持命令行参数
+    import argparse
+    parser = argparse.ArgumentParser(description='崩坏：星穹铁道卡池追踪服务')
+    parser.add_argument('--save', action='store_true', help='仅获取数据并保存到文件，不启动服务器')
+    args = parser.parse_args()
+    
+    if args.save:
+        print("正在获取数据并保存...")
+        fetch_and_save_data()
+    else:
+        app.run(host='0.0.0.0', port=5000)
