@@ -2,26 +2,23 @@ name: Update HSR Wish Data
 
 on:
   schedule:
-    # 每天北京时间 10:00 和 22:00 运行（UTC 2:00 和 14:00）
-    - cron: '0 2,14 * * *'
-  workflow_dispatch:  # 允许手动触发
-  push:  # 添加 push 触发器，但排除对 data.json 的更改
+    - cron: '0 2,14 * * *'  # UTC 2:00 和 14:00 (北京时间 10:00 和 22:00)
+  workflow_dispatch:
+  push:
     paths-ignore:
       - 'data.json'
 
 jobs:
   update:
     runs-on: ubuntu-latest
-    permissions: 
-      contents: write  # 添加写入权限
+    permissions:
+      contents: write
     
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-        # 使用个人访问令牌进行检出
-        token: ${{ secrets.GITHUB_TOKEN }}
         
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -30,28 +27,47 @@ jobs:
         
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
         pip install -r requirements.txt
-        
-    - name: Pull latest changes
-      run: |
-        git config --global user.name "GitHub Actions"
-        git config --global user.email "actions@users.noreply.github.com"
-        git pull origin main
         
     - name: Run data scraper
       run: python starrial.py --save
       
-    - name: Commit and push changes
-      run: |
-        # 检查是否有需要提交的更改
-        if git diff --exit-code; then
-          echo "没有需要提交的更改"
-        else
-          git add data.json
-          git commit -m "Auto update data: $(date -u '+%Y-%m-%d %H:%M')"
-          # 使用 GITHUB_TOKEN 进行身份验证
-          git push origin HEAD:main
-        fi
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Force push changes
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const { execSync } = require('child_process');
+          
+          // 配置 Git 用户
+          execSync('git config --global user.name "GitHub Actions"');
+          execSync('git config --global user.email "actions@users.noreply.github.com"');
+          
+          // 添加更改
+          execSync('git add data.json');
+          
+          // 检查是否有更改
+          const status = execSync('git status --porcelain').toString().trim();
+          if (!status) {
+            console.log('没有需要提交的更改');
+            return;
+          }
+          
+          // 提交更改
+          const commitMessage = `Auto update data: ${new Date().toUTCString()}`;
+          execSync(`git commit -m "${commitMessage}"`);
+          
+          // 强制推送更改
+          try {
+            execSync('git push --force origin HEAD:${{ github.ref }}');
+            console.log('强制推送成功');
+          } catch (error) {
+            console.error('强制推送失败:', error);
+            
+            // 如果强制推送失败，先拉取最新更改再强制推送
+            console.log('尝试拉取最新更改并强制推送...');
+            execSync('git fetch origin');
+            execSync('git reset --hard origin/${{ github.ref }}');
+            execSync('git merge --ff-only origin/${{ github.ref }}');
+            execSync('git push --force origin HEAD:${{ github.ref }}');
+            console.log('重新推送成功');
+          }
