@@ -26,12 +26,11 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         
-    # 添加这一步：拉取最新更改并合并
     - name: Pull latest changes
       run: |
         git config --global user.name "GitHub Actions"
         git config --global user.email "actions@users.noreply.github.com"
-        git pull --rebase
+        git pull
         
     - name: Run data scraper
       run: python starrial.py --save
@@ -44,5 +43,6 @@ jobs:
         else
           git add data.json
           git commit -m "Auto update data: $(date -u '+%Y-%m-%d %H:%M')"
-          git push
+          # 强制推送以覆盖远程更改
+          git push --force
         fi
