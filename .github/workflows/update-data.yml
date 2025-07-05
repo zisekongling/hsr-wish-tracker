@@ -39,7 +39,7 @@ jobs:
     - name: Run data scraper
       run: python starrial.py --save
       
-    - name: Force push changes
+    - name: Force push to GitHub
       uses: actions/github-script@v6
       with:
         script: |
@@ -63,7 +63,7 @@ jobs:
           const commitMessage = `Auto update data: ${new Date().toUTCString()}`;
           execSync(`git commit -m "${commitMessage}"`);
           
-          // 强制推送更改
+          // 强制推送到 GitHub
           try {
             execSync('git push --force origin HEAD:${{ github.ref }}');
             console.log('强制推送成功');
@@ -78,3 +78,17 @@ jobs:
             execSync('git push --force origin HEAD:${{ github.ref }}');
             console.log('重新推送成功');
           }
+          
+    - name: Push to Gitee Mirror
+      env:
+        GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+        GITEE_USERNAME: zisekongling
+        GITEE_REPO: hsr-wish-tracker-mirror
+      run: |
+        # 添加 Gitee 远程仓库
+        git remote add gitee https://${GITEE_USERNAME}:${GITEE_TOKEN}@gitee.com/${GITEE_USERNAME}/${GITEE_REPO}.git
+        
+        # 强制推送到 Gitee 镜像仓库
+        git push --force gitee HEAD:${{ github.ref }}
+        
+        echo "已成功推送到 Gitee 镜像仓库"
