@@ -1,0 +1,76 @@
+{
+  "last_updated": "2025-07-05 01:51:28",
+  "wish_data": [
+    {
+      "version": "3.4",
+      "pool_type": "角色池",
+      "start_time": "3.4版本更新后",
+      "end_time": "2025/07/23 11:59",
+      "five_star": "白厄（毁灭•物理）",
+      "four_star": "停云（同谐•雷）, 三月七（存护•冰）, 驭空（同谐•虚数）"
+    },
+    {
+      "version": "3.4",
+      "pool_type": "角色池",
+      "start_time": "3.4版本更新后",
+      "end_time": "2025/07/23 11:59",
+      "five_star": "缇宝（同谐•量子）",
+      "four_star": "停云（同谐•雷）, 三月七（存护•冰）, 驭空（同谐•虚数）"
+    },
+    {
+      "version": "3.4",
+      "pool_type": "角色池",
+      "start_time": "3.4版本更新后",
+      "end_time": "2025/07/23 11:59",
+      "five_star": "星期日（同谐•虚数）",
+      "four_star": "停云（同谐•雷）, 三月七（存护•冰）, 驭空（同谐•虚数）"
+    },
+    {
+      "version": "3.4",
+      "pool_type": "角色池",
+      "start_time": "3.4版本更新后",
+      "end_time": "2025/07/23 11:59",
+      "five_star": "花火（同谐•量子）",
+      "four_star": "停云（同谐•雷）, 三月七（存护•冰）, 驭空（同谐•虚数）"
+    },
+    {
+      "version": "3.4",
+      "pool_type": "光锥池",
+      "start_time": "3.4版本更新后",
+      "end_time": "2025/07/23 11:59",
+      "five_star": "黎明恰如此燃烧（毁灭）",
+      "four_star": "故事的下一页（记忆）, 与行星相会（同谐）, 在蓝天下（毁灭）"
+    },
+    {
+      "version": "3.4",
+      "pool_type": "光锥池",
+      "start_time": "3.4版本更新后",
+      "end_time": "2025/07/23 11:59",
+      "five_star": "如果时间是一朵花（同谐）",
+      "four_star": "故事的下一页（记忆）, 与行星相会（同谐）, 在蓝天下（毁灭）"
+    },
+    {
+      "version": "3.4",
+      "pool_type": "光锥池",
+      "start_time": "3.4版本更新后",
+      "end_time": "2025/07/23 11:59",
+      "five_star": "回到大地的飞行（同谐）",
+      "four_star": "故事的下一页（记忆）, 与行星相会（同谐）, 在蓝天下（毁灭）"
+    },
+    {
+      "version": "3.4",
+      "pool_type": "光锥池",
+      "start_time": "3.4版本更新后",
+      "end_time": "2025/07/23 11:59",
+      "five_star": "游戏尘寰（同谐）",
+      "four_star": "故事的下一页（记忆）, 与行星相会（同谐）, 在蓝天下（毁灭）"
+    }
+  ],
+  "version_info": {
+    "current_version": "3.4",
+    "current_version_title": "因为太阳将要毁伤",
+    "current_version_update_date": "2025-07-02",
+    "next_version_update_date": "2025-08-13",
+    "next_version_livestream_date": "2025-08-01"
+  }
+}
