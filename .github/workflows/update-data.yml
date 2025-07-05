@@ -2,21 +2,19 @@ name: Update HSR Wish Data
 
 on:
   schedule:
+    # 每天北京时间 10:00 和 22:00 运行（UTC 2:00 和 14:00）
     - cron: '0 2,14 * * *'
-  workflow_dispatch:
+  workflow_dispatch:  # 允许手动触发
 
 jobs:
   update:
     runs-on: ubuntu-latest
-    # 添加权限设置
-    permissions:
-      contents: write  # 授予写入权限
     
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0
+        fetch-depth: 0  # 获取所有历史记录，用于提交
         
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -28,29 +26,23 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         
+    # 添加这一步：拉取最新更改并合并
+    - name: Pull latest changes
+      run: |
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@users.noreply.github.com"
+        git pull --rebase
+        
     - name: Run data scraper
       run: python starrial.py --save
       
     - name: Commit and push changes
-      # 使用 actions/github-script 替代原生 git 命令
-      uses: actions/github-script@v6
-      with:
-        script: |
-          // 设置 Git 用户信息
-          await exec.exec('git', ['config', '--global', 'user.name', 'GitHub Actions'])
-          await exec.exec('git', ['config', '--global', 'user.email', 'actions@users.noreply.github.com'])
-          
-          // 添加更改
-          await exec.exec('git', ['add', 'data.json'])
-          
-          // 检查是否有更改
-          const status = await exec.getExecOutput('git', ['status', '--porcelain'])
-          if (status.stdout) {
-            // 提交更改
-            await exec.exec('git', ['commit', '-m', `Auto update data: ${new Date().toUTCString()}`])
-            
-            // 使用 GitHub Actions 的 token 推送
-            await exec.exec('git', ['push'])
-          } else {
-            console.log('没有检测到文件变更')
-          }
+      run: |
+        # 检查是否有需要提交的更改
+        if git diff-index --quiet HEAD --; then
+          echo "没有需要提交的更改"
+        else
+          git add data.json
+          git commit -m "Auto update data: $(date -u '+%Y-%m-%d %H:%M')"
+          git push
+        fi
