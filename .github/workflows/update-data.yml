@@ -29,6 +29,13 @@ jobs:
       run: |
         pip install -r requirements.txt
         
+    - name: Delete existing data file
+      run: |
+        if [ -f data.json ]; then
+          git rm -f data.json
+          git commit -m "删除旧数据文件" || echo "没有可提交的删除"
+        fi
+        
     - name: Run data scraper
       run: python starrial.py --save
       
