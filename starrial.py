@@ -30,9 +30,9 @@ def adjust_to_target_weekday(date, target_weekday):
 
 def scrape_hsr_wish_data():
     """
-    从biligame维基爬取崩坏：星穹铁道卡池信息
+    从biligame维基爬取崩坏：星穹铁道卡池信息（只爬取最近三个版本）
     """
-    url = "https://wiki.biligame.com/sr/%E8%B7%83%E8%BF%81"
+    url = "https://wiki.biligame.com/sr/%E5%8E%86%E5%8F%B2%E8%B7%83%E8%BF%81"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
     }
@@ -42,87 +42,98 @@ def scrape_hsr_wish_data():
         response.raise_for_status()
         soup = BeautifulSoup(response.content, 'html.parser')
         
-        # 定位包含卡池信息的容器
-        wish_container = soup.find('div', class_='row', style='margin:0 -5px;')
-        
-        if not wish_container:
-            print("未找到卡池信息容器")
-            return []
-            
-        # 找到所有卡池表格
-        wish_tables = wish_container.find_all('table', class_='wikitable')
-        
+        # 定位包含版本信息的容器
         wish_data = []
+        version_containers = []
         
-        for table in wish_tables:
-            wish_info = {}
+        # 查找所有版本标题（h4标签）
+        version_headers = soup.find_all(['h3', 'h4'], class_=lambda x: x != 'mw-editsection')
+        
+        # 收集最近三个版本的容器
+        for header in version_headers:
+            if header.find('span', class_='mw-headline'):
+                version_containers.append(header)
+                if len(version_containers) >= 3:  # 只取最近三个版本
+                    break
+        
+        # 遍历每个版本容器
+        for container in version_containers:
+            # 找到当前容器下所有卡池表格
+            wish_tables = []
+            next_sibling = container.next_sibling
             
-            # 提取时间
-            time_th = table.find('th', string='时间')
-            if not time_th:
-                time_th = table.find('th', string=re.compile(r'时间'))
-            if time_th:
-                time_td = time_th.find_next('td')
-                if time_td:
-                    # 直接获取文本内容，保留原始格式
-                    wish_info['时间'] = time_td.get_text(strip=False).replace('\t', '')
+            # 收集直到下一个标题的所有表格
+            while next_sibling and next_sibling.name not in ['h3', 'h4']:
+                if next_sibling.name == 'div' and 'row' in next_sibling.get('class', []):
+                    wish_tables.extend(next_sibling.find_all('table', class_='wikitable'))
+                next_sibling = next_sibling.next_sibling
             
-            # 提取版本
-            version_th = table.find('th', string='版本')
-            if not version_th:
-                version_th = table.find('th', string=re.compile(r'版本'))
-            if version_th:
-                version_td = version_th.find_next('td')
-                if version_td:
-                    version_text = version_td.get_text(strip=True)
-                    # 提取主版本号 (如 "1.0")
-                    version_match = re.search(r'(\d+\.\d+)', version_text)
-                    if version_match:
-                        wish_info['版本'] = version_match.group(1)
-                    else:
-                        wish_info['版本'] = version_text
-            
-            # 提取5星角色/光锥 - 保留完整文本
-            star5_row = table.find('th', string=re.compile(r'5星(角色|光锥)'))
-            if star5_row:
-                star5_type = "角色" if "角色" in star5_row.get_text() else "光锥"
-                star5_td = star5_row.find_next('td')
-                if star5_td:
-                    # 获取完整的文本内容，包括括号内的属性信息
-                    star5_text = star5_td.get_text(strip=True)
-                    # 只去除多余空格，保留所有内容
-                    star5_text = re.sub(r'\s+', ' ', star5_text)
-                    wish_info['5星类型'] = star5_type
-                    wish_info['5星内容'] = star5_text
-            
-            # 提取4星角色/光锥
-            star4_row = table.find('th', string=re.compile(r'4星(角色|光锥)'))
-            if star4_row:
-                star4_type = "角色" if "角色" in star4_row.get_text() else "光锥"
-                star4_td = star4_row.find_next('td')
-                if star4_td:
-                    star4_items = []
-                    for item in star4_td.children:
-                        if item.name == 'br':
-                            continue
-                        if item.name == 'a':
-                            item_text = item.get_text(strip=True)
-                            if item_text:
-                                star4_items.append(item_text)
-                        elif isinstance(item, str) and item.strip():
-                            star4_items.append(item.strip())
-                    
-                    if not star4_items:
-                        star4_text = star4_td.get_text(strip=True)
-                        star4_items = [s.strip() for s in star4_text.split('\n') if s.strip()]
-                    
-                    wish_info['4星类型'] = star4_type
-                    wish_info['4星内容'] = ", ".join(star4_items)
-            
-            # 确定卡池类型
-            if '5星类型' in wish_info:
-                wish_info['卡池类型'] = "角色池" if wish_info['5星类型'] == "角色" else "光锥池"
-                wish_data.append(wish_info)
+            # 处理每个卡池表格
+            for table in wish_tables:
+                wish_info = {}
+                
+                # 提取时间
+                time_th = table.find('th', string='时间')
+                if not time_th:
+                    time_th = table.find('th', string=re.compile(r'时间'))
+                if time_th:
+                    time_td = time_th.find_next('td')
+                    if time_td:
+                        wish_info['时间'] = time_td.get_text(strip=False).replace('\t', '')
+                
+                # 提取版本
+                version_th = table.find('th', string='版本')
+                if not version_th:
+                    version_th = table.find('th', string=re.compile(r'版本'))
+                if version_th:
+                    version_td = version_th.find_next('td')
+                    if version_td:
+                        version_text = version_td.get_text(strip=True)
+                        version_match = re.search(r'(\d+\.\d+)', version_text)
+                        if version_match:
+                            wish_info['版本'] = version_match.group(1)
+                        else:
+                            wish_info['版本'] = version_text
+                
+                # 提取5星角色/光锥 - 保留完整文本
+                star5_row = table.find('th', string=re.compile(r'5星(角色|光锥)'))
+                if star5_row:
+                    star5_type = "角色" if "角色" in star5_row.get_text() else "光锥"
+                    star5_td = star5_row.find_next('td')
+                    if star5_td:
+                        star5_text = star5_td.get_text(strip=True)
+                        star5_text = re.sub(r'\s+', ' ', star5_text)
+                        wish_info['5星类型'] = star5_type
+                        wish_info['5星内容'] = star5_text
+                
+                # 提取4星角色/光锥
+                star4_row = table.find('th', string=re.compile(r'4星(角色|光锥)'))
+                if star4_row:
+                    star4_type = "角色" if "角色" in star4_row.get_text() else "光锥"
+                    star4_td = star4_row.find_next('td')
+                    if star4_td:
+                        star4_items = []
+                        for item in star4_td.children:
+                            if item.name == 'br':
+                                continue
+                            if item.name == 'a':
+                                item_text = item.get_text(strip=True)
+                                if item_text:
+                                    star4_items.append(item_text)
+                            elif isinstance(item, str) and item.strip():
+                                star4_items.append(item.strip())
+                        
+                        if not star4_items:
+                            star4_text = star4_td.get_text(strip=True)
+                            star4_items = [s.strip() for s in star4_text.split('\n') if s.strip()]
+                        
+                        wish_info['4星类型'] = star4_type
+                        wish_info['4星内容'] = ", ".join(star4_items)
+                
+                # 确定卡池类型
+                if '5星类型' in wish_info:
+                    wish_info['卡池类型'] = "角色池" if wish_info['5星类型'] == "角色" else "光锥池"
+                    wish_data.append(wish_info)
         
         return wish_data
     
