@@ -2,6 +2,9 @@ name: Update HSR Wish Data
 
 on:
   schedule:
+    # 每周五 20:00 (UTC)
+    - cron: '0 20 * * 5'    
+    # 每周六、周日、周一 00:00 (UTC)   
     - cron: '0 0 * * 6,0,1'
   workflow_dispatch:
   push:
