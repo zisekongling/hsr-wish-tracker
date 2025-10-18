@@ -1,5 +1,5 @@
 {
-  "last_updated": "2025-10-17 12:39:49",
+  "last_updated": "2025-10-18 16:11:37",
   "wish_data": [
     {
       "version": "3.6",
@@ -273,5 +273,12 @@
       "five_star": "游戏尘寰（同谐）",
       "four_star": "故事的下一页（记忆）, 与行星相会（同谐）, 在蓝天下（毁灭）"
     }
-  ]
+  ],
+  "version_info": {
+    "current_version": "3.6",
+    "current_version_title": "於長夜重返大地",
+    "current_version_update_date": "2025-09-24",
+    "next_version_update_date": "2025-11-05",
+    "next_version_livestream_date": "2025-10-24"
+  }
 }
