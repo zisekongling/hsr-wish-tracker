@@ -1,5 +1,5 @@
 {
-  "last_updated": "2025-11-03 16:13:52",
+  "last_updated": "2025-11-07 12:39:50",
   "wish_data": [
     {
       "version": "3.7",
@@ -113,12 +113,5 @@
       "five_star": "向着不可追问处（智识）",
       "four_star": "梦的蒙太奇（丰饶）, 谐乐静默之后（智识）, 舞！舞！舞！（同谐）"
     }
-  ],
-  "version_info": {
-    "current_version": "3.8",
-    "current_version_title": "???",
-    "current_version_update_date": "2025-12-17",
-    "next_version_update_date": "2026-01-28",
-    "next_version_livestream_date": "2026-01-16"
-  }
+  ]
 }
